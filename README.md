@@ -143,6 +143,6 @@ This project is licensed under the **MIT License**.
 
 ---
 
-!https://github.com/VulcanWhale/SWAPI-data-analysis/blob/eb59a55def3fbf718233ef6e64aa1b48ce585078/characters.png
+!(https://github.com/VulcanWhale/SWAPI-data-analysis/blob/eb59a55def3fbf718233ef6e64aa1b48ce585078/characters.png)
 
 📌 **Contributions & Feedback:** Feel free to open an issue or submit a pull request!
