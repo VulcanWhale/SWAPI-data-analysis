@@ -42,12 +42,21 @@ def create_vehicles_dataframe(vehicles_data):
     }
     
     for field, dtype in numeric_fields.items():
-        df[field] = df[field].replace(['unknown', 'n/a'], None)
+        # Replace 'unknown' and 'n/a' with None
+        df[field] = df[field].replace(['unknown', 'n/a'], pd.NA)
+        
+        # Convert to numeric, coercing errors to NaN
         df[field] = pd.to_numeric(df[field], errors='coerce')
+        
+        # Fill NaN values with 0
+        df[field] = df[field].fillna(0)
+        
+        # Convert to specified type
         if dtype == int:
-            df[field] = df[field].fillna(0).astype('Int64')  # Use Int64 to handle NaN
-        else:
-            df[field] = df[field].fillna(0.0)
+            df[field] = df[field].astype('Int64')  # Use Int64 to handle NaN
+    
+    # Add derived fields
+    df['total_capacity'] = df['passengers'] + df['crew']
     
     return df
 

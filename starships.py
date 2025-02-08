@@ -212,45 +212,46 @@ def visualize_starship_scores(data):
 
 def analyze_starship_classes(df):
     """Analyze starship classes distribution and characteristics."""
+    if df.empty:
+        return go.Figure(), go.Figure()
+    
     # Class distribution
-    class_dist = df['starship_class'].value_counts()
+    class_counts = df['starship_class'].value_counts()
+    
     fig1 = px.pie(
-        values=class_dist.values,
-        names=class_dist.index,
-        title='Distribution of Starship Classes',
-        template='plotly_dark'
+        values=class_counts.values,
+        names=class_counts.index,
+        title='Starship Class Distribution',
+        color_discrete_sequence=px.colors.qualitative.Set3
     )
     
-    # Average cost by class
-    avg_cost_by_class = df.groupby('starship_class')['cost_in_credits'].mean().sort_values(ascending=True)
-    fig2 = px.bar(
-        x=avg_cost_by_class.values,
-        y=avg_cost_by_class.index,
-        title='Average Cost by Starship Class',
-        labels={'x': 'Average Cost (credits)', 'y': 'Starship Class'},
-        template='plotly_dark'
+    fig1.update_layout(
+        showlegend=True,
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        font=dict(color='white')
     )
     
-    return fig1, fig2
+    return fig1
 
 def analyze_cost_metrics(df):
     """Analyze cost-related metrics of starships."""
     if df.empty:
         return go.Figure(), go.Figure()
-
+    
     # Cost vs Speed
     fig1 = px.scatter(
         df[df['cost_in_credits'] > 0],
-        x='max_atmosphering_speed',
-        y='cost_in_credits',
-        title='Cost vs Speed',
-        hover_data=['name'],
-        template='plotly_dark',
+        x='cost_in_credits',
+        y='max_atmosphering_speed',
+        color='starship_class',
+        title='Cost vs Speed by Starship Class',
         labels={
-            'max_atmosphering_speed': 'Maximum Speed',
             'cost_in_credits': 'Cost (credits)',
-            'name': 'Name'
-        }
+            'max_atmosphering_speed': 'Maximum Speed',
+            'starship_class': 'Starship Class'
+        },
+        hover_data=['name']
     )
     
     fig1.update_layout(
@@ -260,17 +261,15 @@ def analyze_cost_metrics(df):
     )
     
     # Top 10 most expensive starships
-    top_expensive = df[df['cost_in_credits'] > 0].nlargest(10, 'cost_in_credits')
+    top_10_cost = df[df['cost_in_credits'] > 0].nlargest(10, 'cost_in_credits')
+    
     fig2 = px.bar(
-        top_expensive,
+        top_10_cost,
         x='name',
         y='cost_in_credits',
         title='Top 10 Most Expensive Starships',
-        template='plotly_dark',
-        labels={
-            'name': 'Name',
-            'cost_in_credits': 'Cost (credits)'
-        }
+        labels={'name': 'Starship Name', 'cost_in_credits': 'Cost (credits)'},
+        color='starship_class'
     )
     
     fig2.update_layout(
@@ -286,20 +285,20 @@ def analyze_capacity_metrics(df):
     """Analyze capacity-related metrics of starships."""
     if df.empty:
         return go.Figure(), go.Figure()
-
+    
     # Passenger vs Cargo capacity
     fig1 = px.scatter(
         df[df['cargo_capacity'] > 0],
         x='passengers',
         y='cargo_capacity',
+        color='starship_class',
         title='Passenger vs Cargo Capacity',
-        hover_data=['name'],
-        template='plotly_dark',
         labels={
             'passengers': 'Number of Passengers',
             'cargo_capacity': 'Cargo Capacity',
-            'name': 'Name'
-        }
+            'starship_class': 'Starship Class'
+        },
+        hover_data=['name']
     )
     
     fig1.update_layout(
@@ -308,21 +307,16 @@ def analyze_capacity_metrics(df):
         font=dict(color='white')
     )
     
-    # Top 10 by total capacity
-    df['total_capacity'] = df['passengers'].fillna(0) + df['crew'].fillna(0)
-    top_capacity = df[df['total_capacity'] > 0].nlargest(10, 'total_capacity')
+    # Top 10 starships by total capacity
+    df['total_capacity'] = df['passengers'] + df['crew']
+    top_10_capacity = df.nlargest(10, 'total_capacity')
     
     fig2 = px.bar(
-        top_capacity,
+        top_10_capacity,
         x='name',
         y=['passengers', 'crew'],
-        title='Top 10 by Total Capacity',
-        template='plotly_dark',
-        labels={
-            'name': 'Name',
-            'value': 'Number of People',
-            'variable': 'Type'
-        },
+        title='Top 10 Starships by Total Capacity',
+        labels={'name': 'Starship Name', 'value': 'Number of People'},
         barmode='stack'
     )
     
@@ -339,20 +333,20 @@ def analyze_performance_metrics(df):
     """Analyze performance-related metrics of starships."""
     if df.empty:
         return go.Figure(), go.Figure()
-
+    
     # Speed vs Length
     fig1 = px.scatter(
         df[df['length'] > 0],
         x='length',
         y='max_atmosphering_speed',
-        title='Speed vs Length',
-        hover_data=['name'],
-        template='plotly_dark',
+        color='starship_class',
+        title='Speed vs Length by Starship Class',
         labels={
             'length': 'Length (m)',
             'max_atmosphering_speed': 'Maximum Speed',
-            'name': 'Name'
-        }
+            'starship_class': 'Starship Class'
+        },
+        hover_data=['name']
     )
     
     fig1.update_layout(
@@ -361,22 +355,16 @@ def analyze_performance_metrics(df):
         font=dict(color='white')
     )
     
-    # Top 10 fastest
-    top_speed = df[df['max_atmosphering_speed'] > 0].nlargest(10, 'max_atmosphering_speed')
-    fig2 = px.bar(
-        top_speed,
-        x='name',
-        y='max_atmosphering_speed',
-        title='Top 10 Fastest',
-        template='plotly_dark',
-        labels={
-            'name': 'Name',
-            'max_atmosphering_speed': 'Maximum Speed'
-        }
+    # Hyperdrive rating distribution
+    fig2 = px.histogram(
+        df[df['hyperdrive_rating'] > 0],
+        x='hyperdrive_rating',
+        title='Distribution of Hyperdrive Ratings',
+        labels={'hyperdrive_rating': 'Hyperdrive Rating'},
+        color='starship_class'
     )
     
     fig2.update_layout(
-        xaxis_tickangle=-45,
         plot_bgcolor='rgba(0,0,0,0)',
         paper_bgcolor='rgba(0,0,0,0)',
         font=dict(color='white')
@@ -386,52 +374,56 @@ def analyze_performance_metrics(df):
 
 def get_starship_stats(df):
     """Get summary statistics for starships."""
+    if df.empty:
+        return {}
+    
     stats = {
-        'Total Starships': len(df),
-        'Average Cost': f"{df['cost_in_credits'].mean():,.0f} credits",
-        'Average Speed': f"{df['MGLT'].mean():.1f} MGLT",
-        'Total Passenger Capacity': f"{df['passengers'].sum():,.0f}",
-        'Most Common Class': df['starship_class'].mode().iloc[0]
+        'total_starships': len(df),
+        'unique_classes': df['starship_class'].nunique(),
+        'avg_cost': df['cost_in_credits'].mean(),
+        'avg_speed': df['max_atmosphering_speed'].mean(),
+        'avg_capacity': df['total_capacity'].mean()
     }
+    
     return stats
 
 def main():
-    # Fetch and clean the starship data
-    starships_data = fetch_starships_data()
-    starships_df = create_starships_dataframe(starships_data)
-    
-    # Cost Efficiency Analysis and Visualization
-    starships_df = analyze_cost_efficiency(starships_df)
-    visualize_cost_efficiency(starships_df)
-    
-    # Cargo Utilization Analysis and Visualization
-    starships_df = analyze_cargo_utilization(starships_df)
-    visualize_cargo_utilization(starships_df)
-    
-    # Custom Scoring and Visualization
-    starships_df = calculate_custom_score(starships_df)
-    visualize_starship_scores(starships_df)
-    
-    # Additional Analysis and Visualization
-    fig1, fig2 = analyze_starship_classes(starships_df)
-    fig1.show()
-    fig2.show()
-    
-    fig1, fig2 = analyze_cost_metrics(starships_df)
-    fig1.show()
-    fig2.show()
-    
-    fig1, fig2 = analyze_capacity_metrics(starships_df)
-    fig1.show()
-    fig2.show()
-    
-    fig1, fig2 = analyze_performance_metrics(starships_df)
-    fig1.show()
-    fig2.show()
-    
-    stats = get_starship_stats(starships_df)
-    for key, value in stats.items():
-        print(f"{key}: {value}")
+    """Main function to load and analyze starship data."""
+    try:
+        # Load data
+        starships_data = fetch_starships_data()
+        df = create_starships_dataframe(starships_data)
+        
+        if df.empty:
+            print("No starship data available.")
+            return
+        
+        # Perform analysis
+        df = analyze_cost_efficiency(df)
+        df = analyze_cargo_utilization(df)
+        df = calculate_custom_score(df)
+        
+        # Generate visualizations
+        class_fig = analyze_starship_classes(df)
+        cost_fig1, cost_fig2 = analyze_cost_metrics(df)
+        capacity_fig1, capacity_fig2 = analyze_capacity_metrics(df)
+        perf_fig1, perf_fig2 = analyze_performance_metrics(df)
+        
+        # Get summary statistics
+        stats = get_starship_stats(df)
+        
+        return {
+            'dataframe': df,
+            'class_distribution': class_fig,
+            'cost_analysis': (cost_fig1, cost_fig2),
+            'capacity_analysis': (capacity_fig1, capacity_fig2),
+            'performance_analysis': (perf_fig1, perf_fig2),
+            'summary_stats': stats
+        }
+        
+    except Exception as e:
+        print(f"Error in main function: {e}")
+        return None
 
 # Run the main function
 if __name__ == "__main__":

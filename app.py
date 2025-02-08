@@ -7,11 +7,9 @@ import logging
 import json
 
 # Import analysis functions
-from films import (create_films_dataframe, analyze_film_summary, plot_common_words,
-                  analyze_character_count, plot_character_count,
-                  analyze_runtime_distribution, plot_runtime_distribution,
-                  analyze_release_timeline, plot_release_timeline,
-                  analyze_word_frequencies)
+from films import (create_films_dataframe, analyze_runtime_distribution,
+                  analyze_character_count, analyze_word_frequencies,
+                  plot_release_timeline)
 from people import (create_people_dataframe, analyze_gender_distribution,
                    analyze_physical_attributes, analyze_homeworld_statistics,
                    analyze_film_appearances, analyze_species_diversity_interactive,
@@ -26,8 +24,10 @@ from vehicles import (create_vehicles_dataframe, analyze_vehicle_classes,
                      analyze_cost_metrics, analyze_capacity_metrics,
                      analyze_performance_metrics)
 from starships import (create_starships_dataframe, analyze_starship_classes,
-                      analyze_cost_metrics, analyze_capacity_metrics,
-                      analyze_performance_metrics, get_starship_stats)
+                      analyze_cost_metrics as analyze_starship_cost_metrics,
+                      analyze_capacity_metrics as analyze_starship_capacity_metrics,
+                      analyze_performance_metrics as analyze_starship_performance_metrics,
+                      get_starship_stats)
 
 # Import data manager for cached data
 from data_manager import (get_films_data, get_people_data, get_planets_data,
@@ -149,44 +149,35 @@ if category == "Home":
 
 # Films Analysis
 elif category == "Films":
-    st.title("Star Wars Films Analysis")
+    st.header("Films Analysis")
     
-    # Load and process films data
+    # Load film data
     films_data = get_films_data()
-    df = create_films_dataframe(films_data)
+    if not films_data:
+        st.error("Failed to load film data. Please try again.")
+        st.stop()
+        
+    df_films = create_films_dataframe(films_data)
     
-    if not df.empty:
-        # Film summary statistics
-        st.header("Film Summary")
-        stats = analyze_film_summary(df)
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Total Films", stats['Total Films'])
-        col2.metric("Date Range", stats['Date Range'])
-        col3.metric("Total Episodes", stats['Total Episodes'])
-        
-        # Word cloud analysis
-        st.header("Opening Crawl Analysis")
-        word_cloud_bytes = plot_common_words(df)
-        if word_cloud_bytes:
-            st.image(word_cloud_bytes)
-        
-        # Character distribution
-        st.header("Character Analysis")
-        chars_fig = analyze_character_count(df)
-        st.plotly_chart(chars_fig, use_container_width=True)
-        
-        # Runtime analysis
-        st.header("Runtime Analysis")
-        runtime_fig = analyze_runtime_distribution(df)
-        st.plotly_chart(runtime_fig, use_container_width=True)
-        
-        # Release timeline
-        st.header("Release Timeline")
-        timeline_fig = plot_release_timeline(films_data)
-        st.plotly_chart(timeline_fig, use_container_width=True)
-        
-    else:
-        st.error("No film data available. Please check the data source.")
+    # Runtime Distribution
+    st.subheader("Film Runtime Distribution")
+    runtime_fig = analyze_runtime_distribution(df_films)
+    st.plotly_chart(runtime_fig, use_container_width=True)
+    
+    # Character Count Analysis
+    st.subheader("Character Count Analysis")
+    char_count_fig = analyze_character_count(df_films)
+    st.plotly_chart(char_count_fig, use_container_width=True)
+    
+    # Word Frequency Analysis
+    st.subheader("Word Frequency Analysis")
+    word_freq_fig = analyze_word_frequencies(df_films)
+    st.plotly_chart(word_freq_fig, use_container_width=True)
+    
+    # Release Timeline
+    st.subheader("Film Release Timeline")
+    timeline_fig = plot_release_timeline(df_films)
+    st.plotly_chart(timeline_fig, use_container_width=True)
 
 # Characters Analysis
 elif category == "Characters":
@@ -426,70 +417,35 @@ elif category == "Vehicles":
     
     # Load and process vehicles data
     vehicles_data = get_vehicles_data()
-    df = create_vehicles_dataframe(vehicles_data)
+    if not vehicles_data:
+        st.error("Failed to load vehicles data. Please try again.")
+        st.stop()
+        
+    df_vehicles = create_vehicles_dataframe(vehicles_data)
     
-    if not df.empty:
-        # Vehicle class analysis
-        st.header("Vehicle Classes")
-        fig1, fig2 = analyze_vehicle_classes(df)
-        fig1.update_layout(**plot_theme['layout'])
-        fig2.update_layout(**plot_theme['layout'])
-        col1, col2 = st.columns(2)
-        col1.plotly_chart(fig1, use_container_width=True)
-        col2.plotly_chart(fig2, use_container_width=True)
-        st.markdown("""
-        **Understanding Vehicle Types:**
-        - The pie chart shows the different types of vehicles in the Star Wars universe
-        - The bar chart compares the average speed of each vehicle class
-        - This helps us understand which types of vehicles are most common and fastest
-        """)
-        
-        # Cost analysis
-        st.header("Cost Analysis")
-        fig1, fig2 = analyze_cost_metrics(df)
-        fig1.update_layout(**plot_theme['layout'])
-        fig2.update_layout(**plot_theme['layout'])
-        col1, col2 = st.columns(2)
-        col1.plotly_chart(fig1, use_container_width=True)
-        col2.plotly_chart(fig2, use_container_width=True)
-        st.markdown("""
-        **Reading the Cost Charts:**
-        - The scatter plot shows the relationship between a vehicle's speed and its cost
-        - The bar chart lists the 10 most expensive vehicles
-        - Generally, faster vehicles tend to cost more, but there are interesting exceptions
-        """)
-        
-        # Capacity analysis
-        st.header("Capacity Analysis")
-        fig1, fig2 = analyze_capacity_metrics(df)
-        fig1.update_layout(**plot_theme['layout'])
-        fig2.update_layout(**plot_theme['layout'])
-        col1, col2 = st.columns(2)
-        col1.plotly_chart(fig1, use_container_width=True)
-        col2.plotly_chart(fig2, use_container_width=True)
-        st.markdown("""
-        **Understanding Capacity:**
-        - The scatter plot compares passenger capacity to cargo capacity
-        - The stacked bar chart shows the total capacity (crew + passengers) of the largest vehicles
-        - Larger vehicles typically carry more cargo and passengers, but some are specialized for one or the other
-        """)
-        
-        # Performance analysis
-        st.header("Performance Analysis")
-        fig1, fig2 = analyze_performance_metrics(df)
-        fig1.update_layout(**plot_theme['layout'])
-        fig2.update_layout(**plot_theme['layout'])
-        col1, col2 = st.columns(2)
-        col1.plotly_chart(fig1, use_container_width=True)
-        col2.plotly_chart(fig2, use_container_width=True)
-        st.markdown("""
-        **Reading Performance Metrics:**
-        - The scatter plot shows how a vehicle's size relates to its speed
-        - The bar chart highlights the 10 fastest vehicles
-        - Interestingly, bigger vehicles aren't always slower - some large vehicles can be quite fast!
-        """)
-    else:
-        st.error("No vehicle data available. Please check the data source.")
+    # Class Distribution
+    st.subheader("Vehicle Classes")
+    class_fig1, class_fig2 = analyze_vehicle_classes(df_vehicles)
+    st.plotly_chart(class_fig1, use_container_width=True)
+    st.plotly_chart(class_fig2, use_container_width=True)
+    
+    # Cost Analysis
+    st.subheader("Cost Analysis")
+    cost_fig1, cost_fig2 = analyze_cost_metrics(df_vehicles)
+    st.plotly_chart(cost_fig1, use_container_width=True)
+    st.plotly_chart(cost_fig2, use_container_width=True)
+    
+    # Capacity Analysis
+    st.subheader("Capacity Analysis")
+    capacity_fig1, capacity_fig2 = analyze_capacity_metrics(df_vehicles)
+    st.plotly_chart(capacity_fig1, use_container_width=True)
+    st.plotly_chart(capacity_fig2, use_container_width=True)
+    
+    # Performance Analysis
+    st.subheader("Performance Analysis")
+    perf_fig1, perf_fig2 = analyze_performance_metrics(df_vehicles)
+    st.plotly_chart(perf_fig1, use_container_width=True)
+    st.plotly_chart(perf_fig2, use_container_width=True)
 
 # Starships Analysis
 elif category == "Starships":
@@ -497,70 +453,45 @@ elif category == "Starships":
     
     # Load and process starships data
     starships_data = get_starships_data()
-    df = create_starships_dataframe(starships_data)
+    if not starships_data:
+        st.error("Failed to load starships data. Please try again.")
+        st.stop()
+        
+    df_starships = create_starships_dataframe(starships_data)
     
-    if not df.empty:
-        # Starship class analysis
-        st.header("Starship Classes")
-        fig1, fig2 = analyze_starship_classes(df)
-        fig1.update_layout(**plot_theme['layout'])
-        fig2.update_layout(**plot_theme['layout'])
-        col1, col2 = st.columns(2)
-        col1.plotly_chart(fig1, use_container_width=True)
-        col2.plotly_chart(fig2, use_container_width=True)
-        st.markdown("""
-        **Understanding Starship Types:**
-        - The pie chart shows the distribution of different starship classes
-        - The bar chart compares the average speed of each class
-        - This helps us understand which types of starships are most common and their typical performance
-        """)
-        
-        # Cost analysis
-        st.header("Cost Analysis")
-        fig1, fig2 = analyze_cost_metrics(df)
-        fig1.update_layout(**plot_theme['layout'])
-        fig2.update_layout(**plot_theme['layout'])
-        col1, col2 = st.columns(2)
-        col1.plotly_chart(fig1, use_container_width=True)
-        col2.plotly_chart(fig2, use_container_width=True)
-        st.markdown("""
-        **Reading the Cost Charts:**
-        - The scatter plot shows how a starship's speed relates to its cost
-        - The bar chart shows the 10 most expensive starships
-        - Military and specialized starships often cost more than civilian vessels
-        """)
-        
-        # Capacity analysis
-        st.header("Capacity Analysis")
-        fig1, fig2 = analyze_capacity_metrics(df)
-        fig1.update_layout(**plot_theme['layout'])
-        fig2.update_layout(**plot_theme['layout'])
-        col1, col2 = st.columns(2)
-        col1.plotly_chart(fig1, use_container_width=True)
-        col2.plotly_chart(fig2, use_container_width=True)
-        st.markdown("""
-        **Understanding Capacity:**
-        - The scatter plot compares passenger space to cargo capacity
-        - The stacked bar chart shows crew and passenger capacity for the largest ships
-        - Transport ships tend to have high cargo capacity, while capital ships have large crews
-        """)
-        
-        # Performance analysis
-        st.header("Performance Analysis")
-        fig1, fig2 = analyze_performance_metrics(df)
-        fig1.update_layout(**plot_theme['layout'])
-        fig2.update_layout(**plot_theme['layout'])
-        col1, col2 = st.columns(2)
-        col1.plotly_chart(fig1, use_container_width=True)
-        col2.plotly_chart(fig2, use_container_width=True)
-        st.markdown("""
-        **Reading Performance Metrics:**
-        - The scatter plot shows the relationship between a ship's size and speed
-        - The bar chart highlights the 10 fastest starships
-        - Some of the fastest ships are actually quite small, showing that size isn't everything!
-        """)
-    else:
-        st.error("No starship data available. Please check the data source.")
+    # Class Distribution
+    st.subheader("Starship Classes")
+    class_fig = analyze_starship_classes(df_starships)
+    st.plotly_chart(class_fig, use_container_width=True)
+    
+    # Cost Analysis
+    st.subheader("Cost Analysis")
+    cost_fig1, cost_fig2 = analyze_starship_cost_metrics(df_starships)
+    st.plotly_chart(cost_fig1, use_container_width=True)
+    st.plotly_chart(cost_fig2, use_container_width=True)
+    
+    # Capacity Analysis
+    st.subheader("Capacity Analysis")
+    capacity_fig1, capacity_fig2 = analyze_starship_capacity_metrics(df_starships)
+    st.plotly_chart(capacity_fig1, use_container_width=True)
+    st.plotly_chart(capacity_fig2, use_container_width=True)
+    
+    # Performance Analysis
+    st.subheader("Performance Analysis")
+    perf_fig1, perf_fig2 = analyze_starship_performance_metrics(df_starships)
+    st.plotly_chart(perf_fig1, use_container_width=True)
+    st.plotly_chart(perf_fig2, use_container_width=True)
+    
+    # Summary Statistics
+    st.subheader("Summary Statistics")
+    stats = get_starship_stats(df_starships)
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Total Starships", stats['total_starships'])
+    with col2:
+        st.metric("Unique Classes", stats['unique_classes'])
+    with col3:
+        st.metric("Average Cost", f"{stats['avg_cost']:,.0f} credits")
 
 # Footer
 st.markdown("---")

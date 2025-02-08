@@ -225,108 +225,101 @@ def analyze_species_diversity_interactive(df):
         logging.error(f"Failed to analyze interactive species diversity: {e}")
 
 def analyze_numeric_correlations(df):
-    """
-    Analyze and visualize correlations between numeric fields.
-    """
+    """Analyze and visualize correlations between numeric fields."""
     try:
-        # Define numeric fields to analyze
-        numeric_fields = ['height', 'mass', 'film_count']
-
-        # Add film_count if not already in the DataFrame
-        if 'film_count' not in df.columns:
-            df['film_count'] = df['films'].apply(lambda films: len(films) if isinstance(films, list) else 0)
-
-        # Calculate correlation matrix
-        correlation_matrix = df[numeric_fields].corr()
-
-        # Visualization
+        # Convert height and mass to numeric
+        df['height'] = pd.to_numeric(df['height'].replace('unknown', '0'), errors='coerce')
+        df['mass'] = pd.to_numeric(df['mass'].replace('unknown', '0'), errors='coerce')
+        
+        # Create correlation matrix
+        numeric_df = df[['height', 'mass']].copy()
+        correlation = numeric_df.corr()
+        
+        # Create heatmap
         fig = px.imshow(
-            correlation_matrix,
-            text_auto=True,
-            title='Correlations Between Numeric Fields',
-            labels=dict(color='Correlation'),
-            color_continuous_scale='Viridis'
+            correlation,
+            title='Correlation between Physical Attributes',
+            labels=dict(color="Correlation"),
+            color_continuous_scale='RdBu'
         )
-        fig.show()
-
-        logging.info("Numeric correlations analyzed successfully.")
+        
+        fig.update_layout(
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            font=dict(color='white')
+        )
+        
+        return fig
     except Exception as e:
         logging.error(f"Failed to analyze numeric correlations: {e}")
+        return None
 
 def calculate_popularity_index(df):
-    """
-    Calculate a custom popularity index for each character.
-    """
+    """Calculate a custom popularity index for each character."""
     try:
-        df['film_count'] = df['films'].apply(lambda films: len(films) if isinstance(films, list) else 0)
-        df['popularity_index'] = (df['film_count'] * 2) + (df['height'] / 100) + (df['mass'] / 50)
-
-        # Top 10 most popular characters
+        df['popularity_index'] = (
+            df['films'].str.len() * 2 +  # Weight film appearances more heavily
+            df['vehicles'].str.len() +
+            df['starships'].str.len()
+        )
+        
+        # Get top 10 most popular characters
         top_characters = df.nlargest(10, 'popularity_index')
-
-        logging.info("Top 10 Characters by Popularity Index:")
-        logging.info(top_characters[['name', 'popularity_index']])
-
-        # Visualization
+        
         fig = px.bar(
             top_characters,
             x='name',
             y='popularity_index',
-            title='Top 10 Characters by Popularity Index',
+            title='Top 10 Most Popular Characters',
             labels={'name': 'Character', 'popularity_index': 'Popularity Index'}
         )
-        fig.show()
+        
+        fig.update_layout(
+            xaxis_tickangle=-45,
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            font=dict(color='white')
+        )
+        
+        return fig
     except Exception as e:
         logging.error(f"Failed to calculate popularity index: {e}")
-
-def integrate_with_other_endpoints(df, other_data):
-    """
-    Example function to integrate people data with other endpoints (e.g., planets, starships).
-    """
-    try:
-        # Example: Merge people data with homeworld information
-        df = df.merge(other_data, how='left', left_on='homeworld', right_on='url')
-        logging.info("Integrated people data with other endpoint data.")
-        return df
-    except Exception as e:
-        logging.error(f"Failed to integrate with other endpoint data: {e}")
-        return df
+        return None
 
 def main():
-    """
-    Main function to fetch, clean, validate, and analyze people data.
-    """
-    cache_file = 'people_cache.json'
-
-    # Step 1: Fetch Data
-    cached_data = get_cached_people_data(cache_file)
-    if cached_data:
-        logging.info("Using cached people data.")
-        people_data = cached_data
-    else:
-        logging.info("Fetching data from the SWAPI people endpoint...")
+    """Main function to fetch, clean, validate, and analyze people data."""
+    try:
+        # Fetch data
         people_data = fetch_people_data()
-        cache_people_data(people_data, cache_file)
-        logging.info("People data cached successfully.")
-
-    logging.info(f"Total records fetched: {len(people_data)}")
-
-    # Step 2: Create and Validate DataFrame
-    df = create_people_dataframe(people_data)
-    logging.info(f"DataFrame created with {df.shape[0]} rows and {df.shape[1]} columns.")
-
-    if not validate_people_dataframe(df):
-        logging.error("Data validation failed. Exiting.")
-        return
-
-    # Step 3: Analysis
-    analyze_gender_distribution(df).show()
-    analyze_physical_attributes(df).show()
-    analyze_homeworld_statistics(df).show()
-    analyze_film_appearances(df)
-    analyze_species_diversity_interactive(df)
-    analyze_numeric_correlations(df)
-    calculate_popularity_index(df)
+        
+        # Create and validate DataFrame
+        df = create_people_dataframe(people_data)
+        if not validate_people_dataframe(df):
+            raise ValueError("Invalid DataFrame structure")
+        
+        # Generate visualizations
+        gender_fig = analyze_gender_distribution(df)
+        physical_fig = analyze_physical_attributes(df)
+        homeworld_fig = analyze_homeworld_statistics(df)
+        film_fig = analyze_film_appearances(df)
+        species_fig = analyze_species_diversity_interactive(df)
+        correlation_fig = analyze_numeric_correlations(df)
+        popularity_fig = calculate_popularity_index(df)
+        
+        # Return all figures for display
+        return {
+            'gender': gender_fig,
+            'physical': physical_fig,
+            'homeworld': homeworld_fig,
+            'films': film_fig,
+            'species': species_fig,
+            'correlation': correlation_fig,
+            'popularity': popularity_fig
+        }
+        
+    except Exception as e:
+        logging.error(f"Error in main function: {e}")
+        return {}
 
 if __name__ == "__main__":
     main()
