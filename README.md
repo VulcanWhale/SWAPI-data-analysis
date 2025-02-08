@@ -143,6 +143,8 @@ This project is licensed under the **MIT License**.
 
 ---
 
+![](https://github.com/VulcanWhale/SWAPI-data-analysis/blob/b9a7ae321058b2c374b7dc9258787ebd0e50c9d6/welcome.png)
 ![img alt](https://github.com/VulcanWhale/SWAPI-data-analysis/blob/eb59a55def3fbf718233ef6e64aa1b48ce585078/characters.png)
-
+![](https://github.com/VulcanWhale/SWAPI-data-analysis/blob/b9a7ae321058b2c374b7dc9258787ebd0e50c9d6/films.png)
+![](https://github.com/VulcanWhale/SWAPI-data-analysis/blob/b9a7ae321058b2c374b7dc9258787ebd0e50c9d6/planets.png)
 📌 **Contributions & Feedback:** Feel free to open an issue or submit a pull request!
